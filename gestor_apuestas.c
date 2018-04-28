@@ -14,11 +14,11 @@ int crear_ventanillas(struct _gestor_apuestas * g_apuestas,caballos* e_cab, int 
   int clave;
   unsigned short array_comun[2] = {1, 0}; /*1 semaforos,inicializados a 0*/
   struct parametros p;
-  
-  if(g_apuestas == NULLL){
+  apostador *ap;
+  if(g_apuestas == NULL){
     return -1;
   }
-  g_apuestas->carrera_finalizada=0;
+  g_apuestas->carrera_comenzada=0;
   g_apuestas->n_ventanillas = n_ventanillas;
   g_apuestas->ventanillas = (pthread_t*)malloc(n_ventanillas*sizeof(pthread_t));
   if(g_apuestas->ventanillas == NULL){
@@ -44,12 +44,13 @@ int crear_ventanillas(struct _gestor_apuestas * g_apuestas,caballos* e_cab, int 
      printf("Modulo Apuestas: Linea %d - Error al reservar memoria\n", __LINE__);
   }
   for(i=0;i<n_apostadores;i++){/*Inicializamos los apostadores*/
-    g_apuestas->apostadores[i]->id=i;
-    sprintf( g_apuestas->->apostadores[i]->nombre,"Apostador-%d",i);
-    g_apuestas->apostadores[i]->total_apostado=0;
-    g_apuestas->apostadores[i]->n_apuestas_realizadas = 0 ;
-    g_apuestas->apostadores[i]->beneficios_obtenidos = 0;
-    g_apuestas->apostadores[i]->dinero_gando = 0;
+    ap = get_apostador_by_id( g_apuestas, i);
+    ap->id=i;
+    sprintf( ap->nombre,"Apostador-%d",i);
+    ap->total_apostado=0;
+    ap->n_apuestas_realizadas = 0 ;
+    ap->beneficios_obtenidos = 0;
+    ap->dinero_ganado = 0;
   }
   
   
@@ -99,7 +100,7 @@ int ventanillas_abre_ventas(struct _gestor_apuestas * g_apuestas){
   }
   
   for(i=0;i<g_apuestas->n_ventanillas;i++){
-    pthread_join(ventanillas[i],NULL);
+    pthread_join(g_apuestas->ventanillas[i],NULL);
   }
   Up_Semaforo(*g_apuestas->sem_ventanillas, 0, SEM_UNDO);	/*Ponemos a 1 el semaforo*/
   return 1;
@@ -112,54 +113,57 @@ int ventanillas_cierra_ventas(struct _gestor_apuestas * g_apuestas){
   }
    Down_Semaforo(*g_apuestas->sem_ventanillas, 0, SEM_UNDO);	
         g_apuestas->carrera_comenzada=1;
-    Up_Semaforo(*g_apuestas->sem_ventanillas, 0, SEM_UNDO);	
+    Up_Semaforo(*g_apuestas->sem_ventanillas, 0, SEM_UNDO);
+    return 1;
 }
 
 
 
 
-void ventanilla_atiende_clientes(void *argv){
-   if(g_apuestas == NULLL){
-    return -1;
-  }
+void * ventanilla_atiende_clientes(void *argv){
+  
   struct parametros *q;
+  apostador *ap;
   q = (struct parametros*)argv;
   struct _gestor_apuestas * g_apuestas  =  q->g_apuestas;
+   if(g_apuestas == NULL){
+    exit(EXIT_FAILURE) ;
+  }
   caballos* e_cab = q->e_cab;
   int id = q->id;/*Identificador de la ventanilla*/
-  apuesta* apuesta;
+  apuesta * apuesta;
   mensaje_ventanilla msg;
-  int id_apostador,i;
+  int id_apostador;
   
   
-  while(ga->carrera_comenzadaa != 1){/*Atiende mientras no halla comenzado*/
+  while( g_apuestas->carrera_comenzada != 1){/*Atiende mientras no halla comenzado*/
    
-    msgrcv (ga->ga_msqid, (struct msgbuf *) &msg, sizeof(mensaje_ventanilla) - sizeof(long),   1, 0); 
+    msgrcv ( g_apuestas->ga_msqid, (struct msgbuf *) &msg, sizeof(mensaje_ventanilla) - sizeof(long),   1, 0); 
     id_apostador = atoi(strtok(msg.nombre_apostador,"Apostador-"));
+    ap =  get_apostador_by_id(g_apuestas, id_apostador);
     Down_Semaforo(*g_apuestas->sem_ventanillas, 0, SEM_UNDO);	
-          g_apuestas->total_apostado += msg.dineroapuesta;
-          g_apuestas->apostadores[id_apostador]->total_apostado +=   msg.dineroapuesta
-          apuesta = (apuesta*)malloc(sizeof(apuesta));
+          g_apuestas->total_apostado += msg.dinero_apuesta;
+          ap->total_apostado +=   msg.dinero_apuesta;
+        
+          apuesta = (struct _apuesta*)malloc( 1* sizeof(apuesta)  );
           if(apuesta == NULL){
                printf("Modulo Apuestas: Linea %d - Error al reservar memoria\n", __LINE__);
-              return;
+               exit(EXIT_FAILURE);
           }
           apuesta->caballo_id= msg.id_caballo;
-          apuesta->cantidad_apostada = msg.dineroapuesta;
-          apuesta->cotizacion_caballo = get_caballos_cotizacion(e_cab, get_caballos_id(e_cab, msg.id_caballo));
-          apuesta->posible_benficio = msg.dineroapuesta * apuesta->cotizacion_caballo;
-          apuesta->ventanilla = id;
+          apuesta->cantidad_apostada = msg.dinero_apuesta;
+          apuesta->cotizacion_caballo = get_caballos_cotizacion(*e_cab, get_caballos_id(*e_cab, msg.id_caballo));
+          apuesta->posible_benficio = msg.dinero_apuesta * apuesta->cotizacion_caballo;
+          apuesta->ventanilla_id = id;
           
           
-          g_apuestas->apuestas_realizadas[ g_apuestas->apuestas] = apuesta; /*Anniadimos a la lista general de apuestas*/
-          g_apuestas->apuestas++;
+          g_apuestas->apuestas_realizadas[ g_apuestas->n_apuestas] = apuesta; /*Anniadimos a la lista general de apuestas*/
+          g_apuestas->n_apuestas++;
           
-          for(i=0;i<g_apuestas->n_apostadores;i++){/*Anniadimos a las apuestas del apostador*/
-              if(g_apuestas->apostadores[i]->id == id_apostador){
-                  g_apuestas->apostadores[i]->apuestas_realizadas[g_apuestas->apostadores[i]->n_apuestas_realizadas] = apuesta;
-                  g_apuestas->apostadores[i]->n_apuestas_realizadas++;
-              }
-          }
+          
+          ap->apuestas_realizadas[ap->n_apuestas_realizadas] = apuesta;
+          ap->n_apuestas_realizadas++;
+             
           actualizar_cotizaciones_caballos( g_apuestas,e_cab);
     Up_Semaforo(*g_apuestas->sem_ventanillas, 0, SEM_UNDO);	
   } 
@@ -170,20 +174,21 @@ void ventanilla_atiende_clientes(void *argv){
 
 
 
-void inicializa_apuestas(struct _gestor_apuestas * g_apuestas,caballos* e_cab){
+void inicializa_apuestas(struct _gestor_apuestas * g_apuestas,caballos * e_cab){
 	if(e_cab == NULL){
 		return;
 	}
 	int i;
-
+    apostador * ap;
 	
-	for(i=0;i<  get_caballos_total(e_cab);i++){/*Inicializar apuestas ccabllos*/
-		set_caballos_apostado(e_cab, get_caballos_id(e_cab, i), 1.0);
-		set_caballos_cotizacion(e_cab,get_caballos_id(e_cab, i),0.0);
+	for(i=0;i<  get_caballos_total(*e_cab);i++){/*Inicializar apuestas ccabllos*/
+		set_caballos_apostado(e_cab, get_caballos_id(*e_cab, i), 1.0);
+		set_caballos_cotizacion(e_cab,get_caballos_id(*e_cab, i),0.0);
 	}
 	
 	for(i=0;i<g_apuestas->n_apostadores  ;i++){/*Inicializar apostadores*/
-	    g_apuestas->apostadores[i]->total_apostado = 0.0;
+    	ap = get_apostador_by_id( g_apuestas,i);
+	    ap->total_apostado = 0.0;
 	}
 	return;
 }
@@ -193,10 +198,11 @@ void actualizar_cotizaciones_caballos(struct _gestor_apuestas * g_apuestas,cabal
 	if(e_cab == NULL){
 		return;
 	}
+	int i =0;
 	
-	for(i=0;i<  get_caballos_total(e_cab);i++){
-		set_caballos_apostado(e_cab, get_caballos_id(e_cab, i), 1.0);
-		set_caballos_cotizacion(e_cab,get_caballos_id(e_cab, i), get_total_apostado(g_apuestas)  / get_caballos_apostado(e_cab,  get_caballos_id(e_cab, i))   );
+	for(i=0;i<  get_caballos_total(*e_cab);i++){
+		set_caballos_apostado(e_cab, get_caballos_id(*e_cab, i), 1.0);
+		set_caballos_cotizacion(e_cab,get_caballos_id(*e_cab, i), get_total_apostado(g_apuestas)  / get_caballos_apostado(*e_cab,  get_caballos_id(*e_cab, i))   );
 	}
 	return;
 }
@@ -204,11 +210,11 @@ void actualizar_cotizaciones_caballos(struct _gestor_apuestas * g_apuestas,cabal
 
 
 
-int* get_top_10_apostadores(struct _gestor_apuestas * g_apuestas){}
+/*int* get_top_10_apostadores(struct _gestor_apuestas * g_apuestas){}*/
 
 double get_total_apostado(struct _gestor_apuestas * g_apuestas){
     double apostado;
-    if(g_apuestas == NULLL){
+    if(g_apuestas == NULL){
     return -1;
   }
     Down_Semaforo(*g_apuestas->sem_ventanillas, 0, SEM_UNDO);	
@@ -218,8 +224,8 @@ double get_total_apostado(struct _gestor_apuestas * g_apuestas){
 }
 
 void liberar_gestor_apuestas(struct _gestor_apuestas * g_apuestas){
-  if(g_apuestas == NULLL){
-    return -1;
+  if(g_apuestas == NULL){
+    return;
   }
    Borrar_Semaforo(*g_apuestas->sem_ventanillas);
    msgctl (g_apuestas->ga_msqid, IPC_RMID, (struct msqid_ds *)NULL);/*Borramos cola de mensajes*/
@@ -227,4 +233,12 @@ void liberar_gestor_apuestas(struct _gestor_apuestas * g_apuestas){
  ///////////////////**************BUCLE APUESTAS DE CADA APOSTADOR********/ 
    free(g_apuestas->apostadores);
    free(g_apuestas->apuestas_realizadas);
+   return;
+}
+
+apostador * get_apostador_by_id(struct _gestor_apuestas * g_apuestas,int id){
+    if(!g_apuestas){
+        return NULL;
+    }
+    return  &g_apuestas->apostadores[id];
 }
