@@ -1,4 +1,5 @@
-	
+#include "shared_memory.h"	
+
 char * crea_o_asocia_shm(int key,int * semaforo){
 		
 		unsigned short array_comun[2] = {1, 1}; /*1 semaforo,inicializados a 1*/
@@ -12,11 +13,11 @@ char * crea_o_asocia_shm(int key,int * semaforo){
     
     if (-1 == Crear_Semaforo(IPC_PRIVATE, 1, semaforo)) {/*1 semaforo*/
         printf("Linea %d - Error al crear el semaforo\n", __LINE__);
-        return -1;
+        return NULL;
     }
     if (Inicializar_Semaforo(*semaforo, array_comun) == -1) {
         printf("\n Linea %d - Error al inicializar el semaforo\n", __LINE__);
-        return -1;
+        return NULL;
     } else {/**/
         printf("Semaforo inicializado correctamente\n");
     }
@@ -26,7 +27,7 @@ char * crea_o_asocia_shm(int key,int * semaforo){
 
     if((id=shmget(key,sizeof(struct info),IPC_CREAT|IPC_EXCL|0660))==-1){
 			printf("El segmento de memoria compartida ya existe\n");
-			return -1;
+			return NULL;
 		} else {/**/
 			printf("Nuevo segmento creado\n");
 	}
@@ -34,17 +35,17 @@ char * crea_o_asocia_shm(int key,int * semaforo){
 		informacion = shmat (id, (char *)0, 0);
 			if (informacion == NULL) {
 				fprintf (stderr, "Error reserve shared memory \n");
-				return -1; 
+				return NULL; 
 			}
 		informacion->shmid = id;
 		informacion->semaforo = semaforo ;
-		return informacion;
+		return (char*)informacion;
 	}
 	
 	
 void destruye_shm(char * informacion){
 		int id;
-		Borrar_Semaforo(*( (struct info *)informacion)->semaforo)  );
+		Borrar_Semaforo(*( (struct info *)informacion)->semaforo)  ;
 		id = ( (struct info *)informacion)->shmid;
 		shmdt ((char *)informacion);
 	  shmctl (id, IPC_RMID, (struct shmid_ds *)NULL);
