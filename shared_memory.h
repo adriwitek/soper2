@@ -9,15 +9,21 @@
 #include <errno.h>
 #include <sys/shm.h> /* shm* */
 #include <wait.h>
-
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include "semaforos.h"
 
 
-
-struct info{
+typedef struct info{
    int shmid;
    int *  semaforo;
-};
-
-char * crea_o_asocia_shm(int key,int * semaforo);
+   char * contenido;
+}informacion;
+/*tamanio en N bytes*/
+/*el parametro key es necesario para poder asociar la memoria con otra que tenga la misma clave*/
+/*!!!!Ojo, el puntero a char devuelto es conveniente hacerle un cast a informacion **/
+/*El semaforo se inicializa dentro de la funcion,y se libera tb con destruir*/
+char * crea_o_asocia_shm(int key,int * semaforo,int tamannio);
 void destruye_shm(char * informacion);

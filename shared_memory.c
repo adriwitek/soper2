@@ -1,13 +1,13 @@
 #include "shared_memory.h"	
 
-char * crea_o_asocia_shm(int key,int * semaforo){
+char * crea_o_asocia_shm(int key,int * semaforo, int tamannio){
 		
-		unsigned short array_comun[2] = {1, 1}; /*1 semaforo,inicializados a 1*/
+		unsigned short array_comun[2] = {1, 0}; /*1 semaforo,inicializados a 1*/
 		struct info * informacion;
-		int id;
+		int id = 0;
 		
 		semaforo = (int*) malloc(sizeof (int)); 
-    if (semaforo == NULL) {
+    if (semaforo == NULL || tamannio < 0) {
         printf("Linea %d - Error al reservar memoria\n", __LINE__);
     }
     
@@ -25,9 +25,23 @@ char * crea_o_asocia_shm(int key,int * semaforo){
   
   
 
-    if((id=shmget(key,sizeof(struct info),IPC_CREAT|IPC_EXCL|0660))==-1){
+    if((id=shmget(key,tamannio + (sizeof(int) + sizeof(int *) ),IPC_CREAT|IPC_EXCL|0660))==-1){
 			printf("El segmento de memoria compartida ya existe\n");
-			return NULL;
+			printf(" Abriendo como cliente\n");
+			if((id=shmget(key,tamannio + (sizeof(int) + sizeof(int *) ),0))==-1){
+				printf("Error al abrir el segmento\n");
+			}
+			sleep(2);
+			informacion = shmat (id, (char *)0, 0);
+			if (informacion == NULL) {
+				return NULL; 
+			}else{
+				return (char *) informacion;
+			}
+			
+	
+			
+			
 		} else {/**/
 			printf("Nuevo segmento creado\n");
 	}
@@ -39,6 +53,7 @@ char * crea_o_asocia_shm(int key,int * semaforo){
 			}
 		informacion->shmid = id;
 		informacion->semaforo = semaforo ;
+		informacion->contenido = (char *)  (informacion + sizeof(int) +sizeof(int*)) ;/*situamos el puntero*/
 		return (char*)informacion;
 	}
 	
