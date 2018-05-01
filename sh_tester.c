@@ -30,7 +30,7 @@ void main(int argc,char** argv){
          printf("\n Valor : %d",info->contenido[i]);
     }
    
-   Up_Semaforo( *info->semaforo,0, SEM_UNDO);
+   Up_Semaforo( *info->semaforo,0, SEM_UNDO);/*Lo ponemos a 1*/
    printf("\nBajamos el semaforo binario 5 segundos");
    Down_Semaforo( *info->semaforo,0, SEM_UNDO);
    sleep(5);
