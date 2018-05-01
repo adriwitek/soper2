@@ -18,16 +18,16 @@ char * crea_o_asocia_shm(int key,int * semaforo, int tamannio){
     if (Inicializar_Semaforo(*semaforo, array_comun) == -1) {
         printf("\n Linea %d - Error al inicializar el semaforo\n", __LINE__);
         return NULL;
-    } else {/**/
-        printf("Semaforo inicializado correctamente\n");
-    }
+    }/* else {*/
+     /*   printf("Semaforo inicializado correctamente\n");
+    }*/
 
   
   
 
     if((id=shmget(key,tamannio + (sizeof(int) + sizeof(int *) ),IPC_CREAT|IPC_EXCL|0660))==-1){
-			printf("El segmento de memoria compartida ya existe\n");
-			printf(" Abriendo como cliente\n");
+			/*printf("El segmento de memoria compartida ya existe\n");
+			printf(" Abriendo como cliente\n");*/
 			if((id=shmget(key,tamannio + (sizeof(int) + sizeof(int *) ),0))==-1){
 				printf("Error al abrir el segmento\n");
 			}
@@ -42,8 +42,8 @@ char * crea_o_asocia_shm(int key,int * semaforo, int tamannio){
 	
 			
 			
-		} else {/**/
-			printf("Nuevo segmento creado\n");
+	/*	} else {*/
+		/*	printf("Nuevo segmento creado\n");*/
 	}
 	
 		informacion = shmat (id, (char *)0, 0);

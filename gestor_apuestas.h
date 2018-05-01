@@ -10,7 +10,7 @@
 #include "caballo.h"
 #include "semaforos.h"
 
-#define KEY 139  /*!<Random key value*/
+#define KEY_G 139  /*!<Random key value*/
 
 typedef struct _apuesta {
   int ventanilla_id;
@@ -54,7 +54,12 @@ typedef struct _Mensaje_Ventanilla{ /*!< estructura mensaje*/
   double dinero_apuesta;
 }mensaje_ventanilla; /*!< mensaje*/
 
-
+typedef struct _comunicacion_con_gestor {
+    short caballos_iniciados;   /*Boolean*/
+    short carrera_comenzada;    /*Boolean*/
+    struct _caballos * caballos_creados;
+    
+}comunicacion_con_gestor;
  
 int crear_ventanillas(struct _gestor_apuestas * g_apuestas,caballos* e_cab, int n_ventanillas,int n_apostadores);
 int ventanillas_abre_ventas(struct _gestor_apuestas * g_apuestas);

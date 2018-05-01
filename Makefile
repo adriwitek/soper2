@@ -2,8 +2,8 @@ FLAG = -std=gnu99 -Wall -g
 
 all: main test 
 
-main: main.c imprimir.o semaforos.o utilidades.o caballo.o
-	gcc -o main main.c caballo.o imprimir.o semaforos.o utilidades.o
+main: main.c imprimir.o semaforos.o utilidades.o caballo.o shared_memory.o gestor_apuestas.o
+	gcc -o main main.c caballo.o imprimir.o semaforos.o utilidades.o shared_memory.o gestor_apuestas.o -lpthread
 
 imprimir.o: 
 	gcc -c imprimir.c imprimir.h
@@ -25,8 +25,9 @@ utilidades.o:
 	gcc -c utilidades.c utilidades.h $(FLAG)	
 
 
-test: test.c utilidades.o caballo.o
-	gcc -o test test.c utilidades.o caballo.o
+test: test.c utilidades.o caballo.o imprimir.o
+	gcc -o test test.c utilidades.o caballo.o imprimir.o
+
 
 
 
@@ -37,7 +38,8 @@ sh_tester: sh_tester.c shared_memory.o semaforos.o
 
 
 
-main_tester: all
-	./main 10 20 15 8 10000
+run: all
+	./main 3 15 8 8 10000
 clean:
 	rm -f main test *h.gch *.o
+	ipcs -m | awk '{print "ipcrm -m " $2}' >> aux.sh	

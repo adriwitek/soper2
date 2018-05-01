@@ -13,7 +13,7 @@ int crear_ventanillas(struct _gestor_apuestas * g_apuestas,caballos* e_cab, int 
   int i;
   int clave;
   unsigned short array_comun[2] = {1, 0}; /*1 semaforos,inicializados a 0*/
-  struct parametros p;
+  struct parametros p; /*Para las ventanillas(hilos)*/
   apostador *ap;
   if(g_apuestas == NULL){
     return -1;
@@ -55,7 +55,7 @@ int crear_ventanillas(struct _gestor_apuestas * g_apuestas,caballos* e_cab, int 
   
   
   /*Creamos la cola de mensajes del gestorde apuestas*/
-    clave = ftok ("/bin/ls", KEY); 
+    clave = ftok ("/bin/ls", KEY_G); 
 	if (clave == (key_t) -1) { 
 		 perror("Modulo apuestas : Error al obtener clave para cola mensajes\n"); 
          free(g_apuestas->ventanillas);
@@ -120,7 +120,7 @@ int ventanillas_cierra_ventas(struct _gestor_apuestas * g_apuestas){
 
 
 
-void * ventanilla_atiende_clientes(void *argv){
+void * ventanilla_atiende_clientes(void *argv){ /*Para los hilos solo*/
   
   struct parametros *q;
   apostador *ap;
@@ -194,7 +194,7 @@ void inicializa_apuestas(struct _gestor_apuestas * g_apuestas,caballos * e_cab){
 }
 
 
-void actualizar_cotizaciones_caballos(struct _gestor_apuestas * g_apuestas,caballos* e_cab){
+void actualizar_cotizaciones_caballos(struct _gestor_apuestas * g_apuestas,caballos* e_cab){/*Llamada desde los hilos*/
 	if(e_cab == NULL){
 		return;
 	}
